@@ -3,6 +3,7 @@ from ..Script import Script
 import re
 import textwrap
 
+
 class TimelapseLayerChange(Script):
 
     def getSettingDataString(self):
