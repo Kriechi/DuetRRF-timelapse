@@ -116,7 +116,7 @@ def firmware_monitor(snapshot_folder, duet_host, webcam_url, webcam_http_auth, w
 if __name__ == "__main__":
 
     if len(sys.argv) < 2:
-        log_print(textwrap.dedent("""
+        print(textwrap.dedent("""
             Take snapshot pictures of your DuetWifi/DuetEthernet log_printer on every layer change.
             A new subfolder will be created with a timestamp and g-code filename for every new log_print.
 
@@ -132,7 +132,7 @@ if __name__ == "__main__":
             If you are using Simplify3D, you can enter the above commands in the "Layer Change Script" section of your process.
             Slicer-generated z-hops might cause erronously taken pictures, use firmware-retraction with z-hop instead.
 
-            After the log_print is done, use ffmpeg to render a timelapse movie:
+            After the print is done, use ffmpeg to render a timelapse movie:
                 $ ffmpeg -r 20 -y -pattern_type glob -i '*.jpg' -c:v libx264 output.mp4
 
             Usage: ./timelapse.py <folder> <duet_host> <webcam_url> [<auth>] [--no-verify]
@@ -140,7 +140,7 @@ if __name__ == "__main__":
                 folder       - folder where all pictures will be collected, e.g., ~/timelapse_pictures
                 duet_host    - DuetWifi/DuetEthernet hostname or IP address, e.g., mylog_printer.local or 192.168.1.42
                 webcam_url   - HTTP or HTTPS URL that returns a JPG picture, e.g., http://127.0.0.1:8080/?action=snapshot
-                auth         - HTTP Basic Auth if you configured a reverse proxy with auth credentials, e.g., log_printer:passw0rd
+                auth         - HTTP Basic Auth if you configured a reverse proxy with auth credentials, e.g., john:passw0rd
                 --no-verify  - Disables HTTPS certificat verification
               """).lstrip().rstrip(), file=sys.stderr)
         sys.exit(1)
