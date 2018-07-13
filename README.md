@@ -7,7 +7,7 @@
     - with enabled WiFi or Ethernet protocol
     - with enabled Telnet protocol
   * Raspberry Pi / Single-Board Computer on the same network as your Duet
-    - with Python 3
+    - with Python 3 and the `requests` package
   * Webcam that returns snapshot pictures (still image) via an URL
     - mjpg-streamer or similiar: `http://127.0.0.1:8080/?action=snapshot`
   * Slicer that can insert custom G-code for every new layer
