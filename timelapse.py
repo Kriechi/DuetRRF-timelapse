@@ -85,7 +85,7 @@ def firmware_monitor(snapshot_folder, duet_host, webcam_url, webcam_http_auth, w
                     # a print is running, but we don't know the filename yet
                     conn.write('M36')
                     json_data, raw_lines = conn.read_json_line()
-                    log_print("Print is running:", json_data)
+                    log_print("Print started:", json_data)
                     gcode_filename = os.path.basename(json_data['fileName'])
                     current_log_print = "{}-{}".format(datetime.datetime.now().strftime("%Y-%m-%d"),
                                                    os.path.splitext(gcode_filename)[0])
@@ -97,6 +97,7 @@ def firmware_monitor(snapshot_folder, duet_host, webcam_url, webcam_http_auth, w
                 if status == 'I' and timelapse_folder:
                     # a previous print finished and we need to reset and wait for a new print to start
                     timelapse_folder = None
+                    log_print("Print finished.")
 
                 if timelapse_folder:
                     for line in raw_lines:
