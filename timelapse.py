@@ -88,7 +88,7 @@ def firmware_monitor(snapshot_folder, duet_host, webcam_url, webcam_http_auth, w
                     log_print("Print started:", json_data)
                     gcode_filename = os.path.basename(json_data['fileName'])
                     current_log_print = "{}-{}".format(datetime.datetime.now().strftime("%Y-%m-%d"),
-                                                   os.path.splitext(gcode_filename)[0])
+                                                       os.path.splitext(gcode_filename)[0])
                     timelapse_folder = os.path.expanduser(snapshot_folder)
                     timelapse_folder = os.path.abspath(os.path.join(timelapse_folder, current_log_print))
                     os.makedirs(timelapse_folder, exist_ok=True)
@@ -141,8 +141,8 @@ if __name__ == "__main__":
                 folder       - folder where all pictures will be collected, e.g., ~/timelapse_pictures
                 duet_host    - DuetWifi/DuetEthernet hostname or IP address, e.g., mylog_printer.local or 192.168.1.42
                 webcam_url   - HTTP or HTTPS URL that returns a JPG picture, e.g., http://127.0.0.1:8080/?action=snapshot
-                auth         - HTTP Basic Auth if you configured a reverse proxy with auth credentials, e.g., john:passw0rd
-                --no-verify  - Disables HTTPS certificat verification
+                auth         - optional, HTTP Basic Auth if you configured a reverse proxy with auth credentials, e.g., john:passw0rd
+                --no-verify  - optional, disables HTTPS certificat verification
               """).lstrip().rstrip(), file=sys.stderr)
         sys.exit(1)
 
@@ -152,7 +152,7 @@ if __name__ == "__main__":
 
     webcam_http_auth = None
     if len(sys.argv) >= 5:
-        webcam_http_auth = sys.argv[4]
+        webcam_http_auth = requests.HTTPBasicAuth(sys.argv[4].split(':'))
 
     webcam_https_verify = True
     for arg in sys.argv:
