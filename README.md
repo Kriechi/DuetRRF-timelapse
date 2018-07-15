@@ -11,6 +11,10 @@
   * Webcam that returns snapshot pictures (still image) via an URL
     - mjpg-streamer or similiar: `http://127.0.0.1:8080/?action=snapshot`
   * Slicer that can insert custom G-code for every new layer
+    - for Cura you can use the `TimelapseLayerChange.py` post-processing script. Enable it in the post-processing GUI window, after restarting Cura and copying it into:
+      - Linux: `~/.local/share/cura/3.4/scripts`
+      - macOS: `~/Library/Application Support/cura/3.4/scripts`
+      - Windows: `C:\Users\<username>\AppData\Roaming\cura\3.4\scripts`
 
 ## Usage
 ```
