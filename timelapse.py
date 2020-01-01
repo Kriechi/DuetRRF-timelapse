@@ -75,7 +75,7 @@ def create_video(timelapse_path, current_log_print, snapshots_path, keep_snapsho
     snapshots_files = os.path.join(snapshots_path, "*.jpg")
     subprocess.run(["ffmpeg", "-r 20", "-y", "-pattern_type glob", "-i '" + snapshots_files + "'", "-vcodec libx264", video_file])
     if not keep_snapshots:
-        shutil.rmtree(timelapse_folder)
+        shutil.rmtree(snapshots_path)
         logger.info("Snapshot files deleted")
     logger.info("Video created: " + video_file)
 
