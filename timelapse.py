@@ -143,8 +143,8 @@ if __name__ == "__main__":
             You can choose to disable the video generator and keep the individual snapshot files instead.
             A new subfolder will be created with a timestamp and g-code filename for every new log_print.
 
-            This script connects via  to your log_printer, make sure to enable it in your config.g:
-                M586 P2 S1 ; enable 
+            This script connects via Telnet to your log_printer, make sure to enable it in your config.g:
+                M586 P2 S1 ; enable Telnet
 
             You need to inject the following G-Code before a new layer starts:
                 M400 ; wait for all movement to complete
