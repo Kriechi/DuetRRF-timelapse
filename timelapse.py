@@ -13,6 +13,7 @@ import traceback
 import urllib3
 import shutil
 import subprocess
+import signal
 from requests.auth import HTTPBasicAuth
 
 urllib3.disable_warnings()
@@ -25,6 +26,10 @@ ch.setLevel(logging.DEBUG)
 ch.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 logger.addHandler(ch)
 
+deamon_run = True
+
+def shutdown_handler(signum, frame):
+    deamon_run = False
 
 class SimpleLineProtocol:
     def __init__(self, sock):
@@ -73,7 +78,7 @@ def layer_changed(timelapse_folder, webcam_url, webcam_http_auth, webcam_https_v
 def create_video(timelapse_path, current_log_print, snapshots_path, keep_snapshots):
     video_file = os.path.abspath(os.path.join(timelapse_path, current_log_print + ".mp4"))
     snapshots_files = os.path.join(snapshots_path, "*.jpg")
-    subprocess.run(["ffmpeg", "-r 20", "-y", "-pattern_type glob", "-i '" + snapshots_files + "'", "-vcodec libx264", video_file])
+    subprocess.run(["ffmpeg", "-r", "20", "-y", "-pattern_type", "glob", "-i", snapshots_files, "-vcodec", "libx264", video_file])
     if not keep_snapshots:
         shutil.rmtree(snapshots_path)
         logger.info("Snapshot files deleted")
@@ -83,7 +88,9 @@ def create_video(timelapse_path, current_log_print, snapshots_path, keep_snapsho
 def firmware_monitor(timelapse_folder, duet_host, webcam_url, webcam_http_auth, webcam_https_verify, run_ffmpeg, keep_snapshots):
     # time.sleep(30)  # give devices time to boot and join the network
 
-    while True:
+    signal.signal(signal.SIGTERM, shutdown_handler) 
+
+    while deamon_run:
         try:
             logger.info("Connecting to {}...".format(duet_host))
             sock = socket.create_connection((duet_host, 23), timeout=10)
@@ -106,7 +113,7 @@ def firmware_monitor(timelapse_folder, duet_host, webcam_url, webcam_http_auth, 
                     json_data, raw_lines = conn.read_json_line()
                     logger.info("Print started:", json_data)
                     gcode_filename = os.path.basename(json_data['fileName'])
-                    current_log_print = "{}-{}".format(datetime.datetime.now().strftime("%Y-%m-%dT%H:%M"),
+                    current_log_print = "{}-{}".format(datetime.datetime.now().strftime("%Y-%m-%dT%H%M"),
                                                        os.path.splitext(gcode_filename)[0])
                     timelapse_path = os.path.expanduser(timelapse_folder)
                     snapshots_path = os.path.abspath(os.path.join(timelapse_path, current_log_print))
