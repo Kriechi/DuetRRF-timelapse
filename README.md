@@ -48,3 +48,23 @@ Usage: ./timelapse.py <folder> <duet_host> <webcam_url> [<auth>] [--no-verify] [
     --no-ffmpeg       - optional, don't run ffmpeg to generate the video and keep snapshots
     --keep-snapshots  - optional, don't delete the JPG snapshot files after ffmpeg
 ```
+
+## Autostart on a Raspbarry Pi (or any modern Linux system)
+
+* Copy `duet_timelapse.py` into `/usr/local/bin/`
+* Copy `duet_timelapse.service` into `/etc/systmed/system/`
+* Edit `/etc/systemd/system/duet_timelapse.service`
+  - change the `ExecStart` line to include your config arguments
+* Run these commands:
+  - `sudo systemctl daemon-reload`
+  - `sudo systemctl enable --now duet_timelapse.service`
+* Check the that it started correctly:
+  - `sudo systemctl status duet_timelapse.service`
+* Check the logs:
+  - `sudo journalctl -t duet_timelapse`
+
+## Troubleshooting
+
+* Do not run multiple instances of the `duet_timelapse.py` script!
+  - The Telnet connection pool on the Duet board can most likely only handle one
+  - Reset your Duet board to clear any potential connection errors.

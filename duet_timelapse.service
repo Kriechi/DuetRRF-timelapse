@@ -1,0 +1,16 @@
+[Unit]
+Description=Duet Printer Timelapse
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+ExecStart=/usr/local/bin/duet_timelapse.py /home/pi/timelapse_tmp 192.168.1.42 "http://127.0.0.1:8080?action=snapshot"
+User=pi
+Group=pi
+Restart=always
+RestartSec=1s
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
