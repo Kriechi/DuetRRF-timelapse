@@ -3,18 +3,19 @@
 ## Requirements
 
   * DuetWifi or Duet Ethernet or Duet 2 Maestro controlled printer
-    - RepRapFirmware v1.21 or v2.0 or higher
+    - RepRapFirmware v1.21 or v2.0 or v3 or higher
     - with enabled WiFi or Ethernet protocol
-    - with enabled Telnet protocol
+    - with enabled Telnet protocol: `M586 P2 S1` in `config.g`
+    - **DOES NOT work in Duet+SBC mode!**
   * Raspberry Pi / Single-Board Computer on the same network as your Duet
     - with Python 3 and the `requests` package
   * Webcam that returns snapshot pictures (still image) via an URL
-    - mjpg-streamer or similiar: `http://127.0.0.1:8080/?action=snapshot`
+    - mjpg-streamer or similiar, e.g., `http://127.0.0.1:8080/?action=snapshot`
   * Slicer that can insert custom G-code for every new layer
     - for Cura you can use the `TimelapseLayerChange.py` post-processing script. Enable it in the post-processing GUI window, after restarting Cura and copying it into:
-      - Linux: `~/.local/share/cura/3.4/scripts`
-      - macOS: `~/Library/Application Support/cura/3.4/scripts`
-      - Windows: `C:\Users\<username>\AppData\Roaming\cura\3.4\scripts`
+      - Linux: `~/.local/share/cura/<version>/scripts`
+      - macOS: `~/Library/Application Support/cura/<version>/scripts`
+      - Windows: `C:\Users\<username>\AppData\Roaming\cura\<version>\scripts`
 
 ## Usage
 ```
