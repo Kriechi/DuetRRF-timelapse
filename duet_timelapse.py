@@ -1,35 +1,29 @@
 #!/usr/bin/env python3
 
+import argparse
 import logging
 import datetime
 import json
 import os
-import requests
 import socket
-import sys
 import textwrap
 import time
-import traceback
 import urllib3
 import shutil
 import subprocess
-import signal
+
+import requests
 from requests.auth import HTTPBasicAuth
 
 urllib3.disable_warnings()
 
 # create logger
 logger = logging.getLogger('timelapse')
-logger.setLevel(logging.DEBUG)
 ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 ch.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 logger.addHandler(ch)
 
-deamon_run = True
-
-def shutdown_handler(signum, frame):
-    deamon_run = False
 
 class SimpleLineProtocol:
     def __init__(self, sock):
@@ -86,11 +80,9 @@ def create_video(timelapse_path, current_log_print, snapshots_path, keep_snapsho
 
 
 def firmware_monitor(timelapse_folder, duet_host, webcam_url, webcam_http_auth, webcam_https_verify, run_ffmpeg, keep_snapshots):
-    # time.sleep(30)  # give devices time to boot and join the network
+    time.sleep(15)  # give devices time to boot and join the network
 
-    signal.signal(signal.SIGTERM, shutdown_handler) 
-
-    while deamon_run:
+    while True:
         try:
             logger.info("Connecting to {}...".format(duet_host))
             sock = socket.create_connection((duet_host, 23), timeout=10)
@@ -105,6 +97,7 @@ def firmware_monitor(timelapse_folder, duet_host, webcam_url, webcam_http_auth, 
             while True:
                 conn.write('M408')
                 json_data, raw_lines = conn.read_json_line()
+                logger.debug(json_data)
                 status = json_data['status']
 
                 if status == 'P' and not timelapse_path:
@@ -121,7 +114,7 @@ def firmware_monitor(timelapse_folder, duet_host, webcam_url, webcam_http_auth, 
                     logger.info("New timelapse folder created: {}{}".format(snapshots_path, os.path.sep))
                     logger.info("Waiting for layer changes...")
                 if status == 'I' and snapshots_path:
-                    if run_ffmpeg: 
+                    if run_ffmpeg:
                         create_video(timelapse_path, current_log_print, snapshots_path, keep_snapshots)
                     # a previous print finished and we need to reset and wait for a new print to start
                     snapshots_path = None
@@ -132,20 +125,20 @@ def firmware_monitor(timelapse_folder, duet_host, webcam_url, webcam_http_auth, 
                         if line.startswith(b"LAYER CHANGE"):
                             layer_changed(snapshots_path, webcam_url, webcam_http_auth, webcam_https_verify)
 
-                time.sleep(1)
+                time.sleep(0.5)
         except Exception as e:
             logger.exception("ERROR")
         logger.info("Sleeping for a bit...")
-        time.sleep(15)
+        time.sleep(10)
 
 
 ################################################################################
 
-if __name__ == "__main__":
+def main():
+    parser = argparse.ArgumentParser(
+        usage=textwrap.dedent("""
+            Take snapshot pictures of your Duet-based printer on every layer change and generate a timelapse video.
 
-    if len(sys.argv) < 2:
-        print(textwrap.dedent("""
-            Take snapshot pictures of your DuetWifi/DuetEthernet log_printer on every layer change, and generate a timelapse video at the end.
             The filename of the timelapse video will have the starting print timestamp and g-code filename.
             You can choose to disable the video generator and keep the individual snapshot files instead.
             A new subfolder will be created with a timestamp and g-code filename for every new log_print.
@@ -164,45 +157,66 @@ if __name__ == "__main__":
 
             You can disable the video and render a timelapse movie manually with the program ffmpeg:
                 $ ffmpeg -r 20 -y -pattern_type glob -i '*.jpg' -c:v libx264 output.mp4
+        """)
+    )
+    parser.add_argument(
+        "folder",
+        help="folder where all videos and snapshots will be collected, e.g., ~/timelapses",
+    )
+    parser.add_argument(
+        "duet_host",
+        help="hostname or IP address of your Duet printer, e.g., mylog_printer.local or 192.168.1.42",
+    )
+    parser.add_argument(
+        "webcam_url",
+        help="HTTP or HTTPS URL that returns a JPG picture, e.g., http://127.0.0.1:8080/?action=snapshot",
+    )
+    parser.add_argument(
+        "--debug",
+        action='store_true',
+        help="set the log level to debug",
+    )
+    parser.add_argument(
+        "--auth",
+        help="HTTP Basic Auth if the webcam_url requires auth credentials, e.g., john:passw0rd",
+    )
+    parser.add_argument(
+        "--no-verify",
+        action='store_false',
+        help="disables HTTPS certificate verification",
+    )
+    parser.add_argument(
+        "--no-ffmpeg",
+        action='store_false',
+        help="don't run ffmpeg to generate the video and keep snapshots",
+    )
+    parser.add_argument(
+        "--keep-snapshots",
+        action='store_true',
+        help="keep all JPG snapshot files after running ffmpeg instead of deleting them",
+    )
 
-            Usage: ./timelapse.py <folder> <duet_host> <webcam_url> [<auth>] [--no-verify] [--no-ffmpeg] [--keep-snapshots]
-            
-                folder            - folder where all videos and snapshots will be collected, e.g., ~/timelapses
-                duet_host         - DuetWifi/DuetEthernet hostname or IP address, e.g., mylog_printer.local or 192.168.1.42
-                webcam_url        - HTTP or HTTPS URL that returns a JPG picture, e.g., http://127.0.0.1:8080/?action=snapshot
-                auth              - optional, HTTP Basic Auth if the webcam_url requires auth credentials, e.g., john:passw0rd
-                --no-verify       - optional, disables HTTPS certificate verification
-                --no-ffmpeg       - optional, don't run ffmpeg to generate the video and keep snapshots
-                --keep-snapshots  - optional, don't delete the JPG snapshot files after ffmpeg
-            """).lstrip().rstrip(), file=sys.stderr)
-        sys.exit(1)
+    args = parser.parse_args()
+    print(args)
 
-    timelapse_folder = sys.argv[1]
-    duet_host = sys.argv[2]
-    webcam_url = sys.argv[3]
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
 
     webcam_http_auth = None
-    if len(sys.argv) >= 5:
-        auth = sys.argv[4].split(':')
-        webcam_http_auth = HTTPBasicAuth(auth[0], auth[1])
-
-    webcam_https_verify = True
-    run_ffmpeg = True
-    keep_snapshots = False
-    for arg in sys.argv:
-        if arg == '--no-verify':
-            webcam_https_verify = False
-        if arg == '--no-ffmpeg':
-            run_ffmpeg = False
-        if arg == '--keep-snapshots':
-            keep_snapshots = True
+    if args.auth:
+        webcam_http_auth = HTTPBasicAuth(*args.auth.split(':'))
 
     firmware_monitor(
-        timelapse_folder=timelapse_folder,
-        duet_host=duet_host,
-        webcam_url=webcam_url,
+        timelapse_folder=args.folder,
+        duet_host=args.duet_host,
+        webcam_url=args.webcam_url,
         webcam_http_auth=webcam_http_auth,
-        webcam_https_verify=webcam_https_verify,
-        run_ffmpeg=run_ffmpeg,
-        keep_snapshots=keep_snapshots
+        webcam_https_verify=not args.no_verify,
+        run_ffmpeg=not args.no_ffmpeg,
+        keep_snapshots=args.keep_snapshots,
     )
+
+if __name__ == "__main__":
+    main()
