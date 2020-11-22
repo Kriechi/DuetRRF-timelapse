@@ -69,29 +69,30 @@ def layer_changed(timelapse_folder, webcam_url, webcam_http_auth, webcam_https_v
     else:
         logger.warning('Failed to get timelapse snapshot.')
 
-def create_video(timelapse_path, current_log_print, snapshots_path, keep_snapshots):
+def create_video(timelapse_path, current_log_print, snapshots_path, keep_snapshots, ffmpeg_cmd):
     video_file = os.path.abspath(os.path.join(timelapse_path, current_log_print + ".mp4"))
     snapshots_files = os.path.join(snapshots_path, "*.jpg")
     logger.info("Running ffmpeg to create the video...")
-    subprocess.run(
-        [
-            "ffmpeg",
-            "-r", "20",
-            "-y",
-            "-pattern_type", "glob",
-            "-i", snapshots_files,
-            "-vcodec", "libx264",
-            video_file,
-        ],
-        check=True,
-    )
+
+    cmd = []
+    for c in ffmpeg_cmd.split():
+        if c == "%IN":
+            cmd.append(snapshots_files)
+        elif c == "%OUT":
+            cmd.append(video_file)
+        else:
+            cmd.append(c)
+    logger.info("  > " + " ".join(cmd))
+
+    subprocess.run(cmd, check=True)
+
     if not keep_snapshots:
         shutil.rmtree(snapshots_path)
         logger.info("Snapshot files deleted.")
     logger.info("Video created: " + video_file)
 
 
-def firmware_monitor(timelapse_folder, duet_host, webcam_url, webcam_http_auth, webcam_https_verify, run_ffmpeg, keep_snapshots):
+def firmware_monitor(timelapse_folder, duet_host, webcam_url, webcam_http_auth, webcam_https_verify, run_ffmpeg, ffmpeg_cmd, keep_snapshots):
     logger.info("Sleeping for a bit to let everything initialize...")
     time.sleep(15)  # give devices time to boot and join the network
 
@@ -129,7 +130,7 @@ def firmware_monitor(timelapse_folder, duet_host, webcam_url, webcam_http_auth, 
                 if status == 'I' and snapshots_path:
                     if run_ffmpeg:
                         try:
-                            create_video(timelapse_path, current_log_print, snapshots_path, keep_snapshots)
+                            create_video(timelapse_path, current_log_print, snapshots_path, keep_snapshots, ffmpeg_cmd)
                         except Exception as e:
                             logger.error("Failed creating video: {}".format(e))
                     # a previous print finished and we need to reset and wait for a new print to start
@@ -173,7 +174,8 @@ def main():
 
             You can disable the video and render a timelapse movie manually with the program ffmpeg:
                 $ ffmpeg -r 20 -y -pattern_type glob -i '*.jpg' -c:v libx264 output.mp4
-        """)
+        """),
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "folder",
@@ -207,6 +209,11 @@ def main():
         help="run ffmpeg to generate the video after a print finishes",
     )
     parser.add_argument(
+        "--ffmpeg-cmd",
+        help="the ffmpeg command to run (use %%IN and %%OUT for placeholders)",
+        default="ffmpeg -r 20 -y -pattern_type glob -i %IN -vcodec libx264 %OUT"
+    )
+    parser.add_argument(
         "--keep-snapshots",
         action='store_true',
         help="keep all JPG snapshots after running ffmpeg instead of deleting them",
@@ -231,6 +238,7 @@ def main():
         webcam_http_auth=webcam_http_auth,
         webcam_https_verify=not args.no_verify,
         run_ffmpeg=args.run_ffmpeg,
+        ffmpeg_cmd=args.ffmpeg_cmd,
         keep_snapshots=args.keep_snapshots,
     )
 

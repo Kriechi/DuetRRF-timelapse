@@ -47,12 +47,14 @@ positional arguments:
   webcam_url        HTTP or HTTPS URL that returns a JPG picture, e.g., http://127.0.0.1:8080/?action=snapshot
 
 optional arguments:
-  -h, --help        show this help message and exit
-  --debug           set the log level to debug
-  --auth AUTH       HTTP Basic Auth if the webcam_url requires auth credentials, e.g., john:passw0rd
-  --no-verify       disables HTTPS certificate verification
-  --run-ffmpeg      run ffmpeg to generate the video after a print finishes
-  --keep-snapshots  keep all JPG snapshots after running ffmpeg instead of deleting them
+  -h, --help               show this help message and exit
+  --debug                  set the log level to debug
+  --auth AUTH              HTTP Basic Auth if the webcam_url requires auth credentials, e.g., john:passw0rd
+  --no-verify              disables HTTPS certificate verification
+  --run-ffmpeg             run ffmpeg to generate the video after a print finishes
+  --ffmpeg-cmd FFMPEG_CMD  the ffmpeg command to run (use %IN and %OUT for placeholders)
+                           (default: ffmpeg -r 20 -y -pattern_type glob -i %IN -vcodec libx264 %OUT)
+  --keep-snapshots         keep all JPG snapshots after running ffmpeg instead of deleting them
 ```
 
 ## Autostart on a Raspbarry Pi (or any modern Linux system)
