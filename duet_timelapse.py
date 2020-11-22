@@ -72,14 +72,27 @@ def layer_changed(timelapse_folder, webcam_url, webcam_http_auth, webcam_https_v
 def create_video(timelapse_path, current_log_print, snapshots_path, keep_snapshots):
     video_file = os.path.abspath(os.path.join(timelapse_path, current_log_print + ".mp4"))
     snapshots_files = os.path.join(snapshots_path, "*.jpg")
-    subprocess.run(["ffmpeg", "-r", "20", "-y", "-pattern_type", "glob", "-i", snapshots_files, "-vcodec", "libx264", video_file])
+    logger.info("Running ffmpeg to create the video...")
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-r", "20",
+            "-y",
+            "-pattern_type", "glob",
+            "-i", snapshots_files,
+            "-vcodec", "libx264",
+            video_file,
+        ],
+        check=True,
+    )
     if not keep_snapshots:
         shutil.rmtree(snapshots_path)
-        logger.info("Snapshot files deleted")
+        logger.info("Snapshot files deleted.")
     logger.info("Video created: " + video_file)
 
 
 def firmware_monitor(timelapse_folder, duet_host, webcam_url, webcam_http_auth, webcam_https_verify, run_ffmpeg, keep_snapshots):
+    logger.info("Sleeping for a bit to let everything initialize...")
     time.sleep(15)  # give devices time to boot and join the network
 
     while True:
@@ -115,7 +128,10 @@ def firmware_monitor(timelapse_folder, duet_host, webcam_url, webcam_http_auth, 
                     logger.info("Waiting for layer changes...")
                 if status == 'I' and snapshots_path:
                     if run_ffmpeg:
-                        create_video(timelapse_path, current_log_print, snapshots_path, keep_snapshots)
+                        try:
+                            create_video(timelapse_path, current_log_print, snapshots_path, keep_snapshots)
+                        except Exception as e:
+                            logger.error("Failed creating video: {}".format(e))
                     # a previous print finished and we need to reset and wait for a new print to start
                     snapshots_path = None
                     logger.info("Print finished.")
@@ -127,7 +143,7 @@ def firmware_monitor(timelapse_folder, duet_host, webcam_url, webcam_http_auth, 
 
                 time.sleep(0.5)
         except Exception as e:
-            logger.exception("ERROR")
+            logger.exception("ERROR: {}".format(e))
         logger.info("Sleeping for a bit...")
         time.sleep(10)
 
@@ -186,14 +202,14 @@ def main():
         help="disables HTTPS certificate verification",
     )
     parser.add_argument(
-        "--no-ffmpeg",
-        action='store_false',
-        help="don't run ffmpeg to generate the video and keep snapshots",
+        "--run-ffmpeg",
+        action='store_true',
+        help="run ffmpeg to generate the video after a print finishes",
     )
     parser.add_argument(
         "--keep-snapshots",
         action='store_true',
-        help="keep all JPG snapshot files after running ffmpeg instead of deleting them",
+        help="keep all JPG snapshots after running ffmpeg instead of deleting them",
     )
 
     args = parser.parse_args()
@@ -214,7 +230,7 @@ def main():
         webcam_url=args.webcam_url,
         webcam_http_auth=webcam_http_auth,
         webcam_https_verify=not args.no_verify,
-        run_ffmpeg=not args.no_ffmpeg,
+        run_ffmpeg=args.run_ffmpeg,
         keep_snapshots=args.keep_snapshots,
     )
 
